@@ -91,3 +91,10 @@ def test_health(agent):
 def test_client_raises_on_http_errors():
     with pytest.raises(ChatwootError):
         chatwoot(Recorder(status=404)).send_reply(1, "x")
+
+
+def test_vip_label_on_the_conversation_counts(agent):
+    e = event("How do I restart my server?")
+    e["conversation"]["labels"] = ["vip"]
+    body = TestClient(create_app(agent, chatwoot=None, token="")).post("/webhook/chatwoot", json=e).json()
+    assert body["reason"] == "vip"
