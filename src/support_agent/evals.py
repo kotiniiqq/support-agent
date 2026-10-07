@@ -1,0 +1,125 @@
+"""Evals on the golden ticket set. No API key needed: this is the routing and
+retrieval layer, which is what decides whether a customer gets an answer at all.
+
+Metrics per retriever:
+- routing accuracy (route and reason both right);
+- sensitive recall: share of billing / personal-data / abuse / human / VIP tickets handed
+  off with the right reason (the CI gate requires 1.0);
+- false handoffs: answerable tickets sent to a person;
+- coverage: share of all tickets answered automatically;
+- answer accuracy: answered tickets that cite the expected article;
+- retrieval hit@1 / hit@3 on answerable tickets;
+- threshold sweep: coverage and answer accuracy as the no-match threshold moves.
+"""
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+
+import yaml
+
+from .agent import Agent
+from .models import ANSWER, SENSITIVE, Customer, Ticket
+from .retrieval import Retriever, make_retriever
+
+CASES = Path(__file__).resolve().parent / "eval_cases" / "tickets.yaml"
+SWEEP = [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.40]
+
+
+def load_cases(path: Path | None = None) -> list[dict]:
+    return yaml.safe_load((path or CASES).read_text(encoding="utf-8"))
+
+
+def _ticket(case: dict) -> Ticket:
+    return Ticket(id=case["id"], text=case["text"], customer=Customer(vip=bool(case.get("vip"))))
+
+
+def _ratio(n: int, d: int) -> float | None:
+    return round(n / d, 3) if d else None
+
+
+def evaluate(retriever: Retriever, cases: list[dict], threshold: float | None = None) -> dict:
+    agent = Agent(retriever, threshold=threshold, llm=None)  # routing layer only: no LLM in evals
+    rows = []
+    for case in cases:
+        d = agent.handle(_ticket(case))
+        expected_route = case["route"]
+        correct = (d.route == expected_route and
+                   (d.sources[:1] == [case["article"]] if expected_route == ANSWER else d.reason == case["reason"]))
+        rows.append({"id": case["id"], "expected": case.get("article") or case.get("reason"),
+                     "got": (d.sources[:1] or [None])[0] if d.route == ANSWER else d.reason,
+                     "route": d.route, "score": d.score, "correct": correct})
+    by_id = {r["id"]: r for r in rows}
+    answerable = [c for c in cases if c["route"] == ANSWER]
+    sensitive = [c for c in cases if c.get("reason") in SENSITIVE]
+    answered = [r for r in rows if r["route"] == ANSWER]
+
+    hit1 = hit3 = 0
+    for c in answerable:
+        ids = [h.article_id for h in retriever.search(c["text"], k=3)]
+        hit1 += ids[:1] == [c["article"]]
+        hit3 += c["article"] in ids
+    return {
+        "retriever": retriever.name,
+        "threshold": agent.threshold,
+        "cases": len(cases),
+        "routing_accuracy": _ratio(sum(r["correct"] for r in rows), len(rows)),
+        "sensitive_recall": _ratio(sum(by_id[c["id"]]["correct"] for c in sensitive), len(sensitive)),
+        "false_handoffs": sum(by_id[c["id"]]["route"] != ANSWER for c in answerable),
+        "coverage": _ratio(len(answered), len(rows)),
+        # of the tickets the KB can answer, how many were answered automatically and correctly
+        "automated": _ratio(sum(by_id[c["id"]]["correct"] for c in answerable), len(answerable)),
+        "answer_accuracy": _ratio(sum(r["correct"] for r in answered), len(answered)),
+        "wrong_answers": sum(not r["correct"] for r in answered),
+        "hit_at_1": _ratio(hit1, len(answerable)),
+        "hit_at_3": _ratio(hit3, len(answerable)),
+        "rows": rows,
+    }
+
+
+def sweep(retriever: Retriever, cases: list[dict], thresholds=SWEEP) -> list[dict]:
+    out = []
+    for t in thresholds:
+        r = evaluate(retriever, cases, threshold=t)
+        out.append({k: r[k] for k in ("threshold", "coverage", "automated", "answer_accuracy", "wrong_answers",
+                                      "false_handoffs", "routing_accuracy")})
+    return out
+
+
+def run(retrievers: list[str] | None = None, cases: list[dict] | None = None) -> dict:
+    cases = cases or load_cases()
+    results = []
+    for name in retrievers or ["bm25", "qdrant"]:
+        retriever = make_retriever(name)
+        result = evaluate(retriever, cases)
+        result["sweep"] = sweep(retriever, cases)
+        results.append(result)
+    return {"cases": len(cases), "results": results}
+
+
+def write_results(report: dict, out_dir: Path | None = None) -> Path:
+    out_dir = out_dir or Path.cwd() / "evals"
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%SZ")
+    (out_dir / "results").mkdir(parents=True, exist_ok=True)
+    (out_dir / "results" / f"{stamp}.json").write_text(json.dumps(report, indent=2), encoding="utf-8", newline="\n")
+    lines = ["# Eval results", "",
+             f"Last run: {stamp}. {report['cases']} golden tickets. Raw per-ticket data is written to "
+             "`evals/results/` (not committed).", "",
+             "| retriever | threshold | routing accuracy | sensitive recall | coverage | automated "
+             "| answer accuracy | wrong answers | false handoffs | hit@1 | hit@3 |",
+             "|---|---|---|---|---|---|---|---|---|---|---|"]
+    for r in report["results"]:
+        lines.append(f"| {r['retriever']} | {r['threshold']} | {r['routing_accuracy']} | {r['sensitive_recall']} "
+                     f"| {r['coverage']} | {r['automated']} | {r['answer_accuracy']} | {r['wrong_answers']} | {r['false_handoffs']} "
+                     f"| {r['hit_at_1']} | {r['hit_at_3']} |")
+    for r in report["results"]:
+        lines += ["", f"## Threshold sweep: {r['retriever']}", "",
+                  "| threshold | coverage | automated | answer accuracy | wrong answers | false handoffs | routing accuracy |",
+                  "|---|---|---|---|---|---|---|"]
+        lines += [f"| {s['threshold']} | {s['coverage']} | {s['automated']} | {s['answer_accuracy']} | {s['wrong_answers']} "
+                  f"| {s['false_handoffs']} | {s['routing_accuracy']} |" for s in r["sweep"]]
+        misses = [f"`{x['id']}` (expected {x['expected']}, got {x['got']})" for x in r["rows"] if not x["correct"]]
+        if misses:
+            lines += ["", "Misrouted at the default threshold: " + ", ".join(misses)]
+    path = out_dir / "RESULTS.md"
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    return path

@@ -1,0 +1,56 @@
+# Golden set: synthetic tickets written the way customers write, with the route a careful
+# human would choose. route: answer -> `article` is the one that answers it;
+# route: handoff -> `reason` is the expected handoff reason.
+# Some answerable tickets are phrased far from the article wording on purpose.
+
+# ---------- answerable how-to questions ----------
+- {id: a01, route: answer, article: restart-server, text: "How do I restart my server?"}
+- {id: a02, route: answer, article: restart-server, text: "server is frozen and nobody can join, how to reboot it"}
+- {id: a03, route: answer, article: change-game-version, text: "How can I switch my server to Minecraft 1.21?"}
+- {id: a04, route: answer, article: change-game-version, text: "need to downgrade the game version, plugins broke after the update"}
+- {id: a05, route: answer, article: install-mods, text: "How do I install Forge mods?"}
+- {id: a06, route: answer, article: install-mods, text: "where do I put plugin jars for paper"}
+- {id: a07, route: answer, article: backups, text: "I deleted my world by accident, can I restore a backup?"}
+- {id: a08, route: answer, article: backups, text: "how often do you make backups and how long are they kept"}
+- {id: a09, route: answer, article: sftp-access, text: "FileZilla says connection refused"}
+- {id: a10, route: answer, article: sftp-access, text: "what are my sftp login details"}
+- {id: a11, route: answer, article: ddos-protection, text: "are we being DDoS attacked? lag spikes every few minutes and packet loss"}
+- {id: a12, route: answer, article: server-lag, text: "TPS drops to 12 when more than 10 players are online"}
+- {id: a13, route: answer, article: server-lag, text: "the server uses all its memory and gets really slow"}
+- {id: a14, route: answer, article: ports-firewall, text: "I need an extra port for the voice chat plugin"}
+- {id: a15, route: answer, article: ports-firewall, text: "how to open a port for dynmap"}
+- {id: a16, route: answer, article: upgrade-plan, text: "How do I upgrade my plan to get more RAM?"}
+- {id: a17, route: answer, article: custom-domain, text: "Can players join with play.mydomain.com instead of the IP?"}
+- {id: a18, route: answer, article: custom-domain, text: "how do I set up an SRV record"}
+- {id: a19, route: answer, article: server-wont-start, text: "server crashes right after start, console shows a java error"}
+- {id: a20, route: answer, article: server-wont-start, text: "it won't start after I added a modpack"}
+- {id: a21, route: answer, article: sub-users, text: "How can my friend help manage the server without my password?"}
+- {id: a22, route: answer, article: upload-world, text: "how do I upload my singleplayer world to the server"}
+- {id: a23, route: answer, article: upload-world, text: "want to move my map from another host"}
+- {id: a24, route: answer, article: restart-server, text: "Як перезапустити сервер?"}
+
+# ---------- sensitive: must always go to a person ----------
+- {id: s01, route: handoff, reason: billing, text: "I want a refund for this month, the server was down for days"}
+- {id: s02, route: handoff, reason: billing, text: "Why was I charged twice in September?"}
+- {id: s03, route: handoff, reason: billing, text: "please send me an invoice with our company details"}
+- {id: s04, route: handoff, reason: billing, text: "Хочу повернення коштів за минулий місяць"}
+- {id: s05, route: handoff, reason: billing, text: "my payment failed but the money was taken"}
+- {id: s06, route: handoff, reason: personal_data, text: "Use my card 4111 1111 1111 1111 for the renewal"}
+- {id: s07, route: handoff, reason: personal_data, text: "my panel password is Summer2026! please check the server yourself"}
+- {id: s08, route: handoff, reason: personal_data, text: "refund to IBAN UA21 3223 1300 0002 6007 2335 6600 1"}
+- {id: s09, route: handoff, reason: abuse, text: "This is a scam, I am contacting my lawyer"}
+- {id: s10, route: handoff, reason: abuse, text: "I will report you to the police if my data is not deleted"}
+- {id: s11, route: handoff, reason: abuse, text: "Я подам до суду на вашу компанію"}
+- {id: s12, route: handoff, reason: human_requested, text: "Can I talk to a real person please"}
+- {id: s13, route: handoff, reason: human_requested, text: "operator"}
+- {id: s14, route: handoff, reason: vip, vip: true, text: "How do I restart my server?"}
+- {id: s15, route: handoff, reason: vip, vip: true, text: "how do I open a port for voice chat"}
+
+# ---------- outside the knowledge base: hand off rather than guess ----------
+- {id: n01, route: handoff, reason: no_match, text: "Do you also host Discord bots?"}
+- {id: n02, route: handoff, reason: no_match, text: "can you recommend a good survival modpack"}
+- {id: n03, route: handoff, reason: no_match, text: "what do you think about the football final"}
+- {id: n04, route: handoff, reason: no_match, text: "Is there a student discount?"}
+- {id: n05, route: handoff, reason: no_match, text: "my bot can't connect to your public API"}
+- {id: n06, route: handoff, reason: no_match, text: "Do you have servers in Australia?"}
+- {id: n07, route: handoff, reason: no_match, text: "hello"}
