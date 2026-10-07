@@ -1,0 +1,321 @@
+# Adversarial set, written by an independent reviewer to break the pre-gate (not by the author of
+# the rules). The rules were then fixed against it, so it is no longer held out: it is a regression
+# set. sensitive: must reach a person with this reason. ordinary: must NOT be blocked by the pre-gate
+# (an answer or a no_match handoff are both fine).
+- id: x01
+  kind: sensitive
+  reason: personal_data
+  text: Card 4111-1111-1111-1111 exp 12/27
+- id: x02
+  kind: sensitive
+  reason: personal_data
+  text: card 4111.1111.1111.1111
+- id: x03
+  kind: sensitive
+  reason: personal_data
+  text: card 4111/1111/1111/1111
+- id: x04
+  kind: sensitive
+  reason: personal_data
+  text: card 4111  1111  1111  1111
+- id: x05
+  kind: sensitive
+  reason: personal_data
+  text: card 4111_1111_1111_1111
+- id: x06
+  kind: sensitive
+  reason: personal_data
+  text: my iban is ua213223130000026007233566001
+- id: x07
+  kind: sensitive
+  reason: personal_data
+  text: 'IBAN: UA21-3223-1300-0002-6007-2335-6600-1'
+- id: x08
+  kind: sensitive
+  reason: personal_data
+  text: IBAN DE89 3704 0044 0532 0130 00
+- id: x09
+  kind: sensitive
+  reason: personal_data
+  text: IBAN DE89370400440532013000
+- id: x10
+  kind: sensitive
+  reason: personal_data
+  text: login bob@example.com password hunter22
+- id: x11
+  kind: sensitive
+  reason: personal_data
+  text: 'login bob@example.com pass: hunter22'
+- id: x12
+  kind: sensitive
+  reason: personal_data
+  text: my pw is hunter22
+- id: x13
+  kind: sensitive
+  reason: personal_data
+  text: password=hunter22 user bob@example.com
+- id: x14
+  kind: sensitive
+  reason: personal_data
+  text: Пароль от панели qwerty123
+- id: x15
+  kind: sensitive
+  reason: personal_data
+  text: мой пароль qwerty123, почта bob@mail.ru
+- id: x16
+  kind: sensitive
+  reason: personal_data
+  text: call me at +380 67 123 45 67
+- id: x17
+  kind: sensitive
+  reason: personal_data
+  text: my phone is +1 (555) 123-4567
+- id: x18
+  kind: sensitive
+  reason: personal_data
+  text: passport AB123456
+- id: x19
+  kind: sensitive
+  reason: billing
+  text: I was billed twice this month
+- id: x20
+  kind: sensitive
+  reason: billing
+  text: I got charged for a server I cancelled
+- id: x21
+  kind: sensitive
+  reason: billing
+  text: cancel my subscription and give my money back
+- id: x22
+  kind: sensitive
+  reason: billing
+  text: I paid but the server is not active
+- id: x23
+  kind: sensitive
+  reason: billing
+  text: my PayPal payment went through twice
+- id: x24
+  kind: sensitive
+  reason: billing
+  text: need a receipt for my last purchase
+- id: x25
+  kind: sensitive
+  reason: billing
+  text: the renewal took money from my account
+- id: x26
+  kind: sensitive
+  reason: billing
+  text: please refund me
+- id: x27
+  kind: sensitive
+  reason: billing
+  text: I want my money returned
+- id: x28
+  kind: sensitive
+  reason: billing
+  text: Мені двічі списали кошти
+- id: x29
+  kind: sensitive
+  reason: billing
+  text: Поверніть гроші
+- id: x30
+  kind: sensitive
+  reason: billing
+  text: Хочу повернути кошти
+- id: x31
+  kind: sensitive
+  reason: billing
+  text: Не пройшов платіж
+- id: x32
+  kind: sensitive
+  reason: billing
+  text: Где мой чек об оплате?
+- id: x33
+  kind: sensitive
+  reason: billing
+  text: Списали деньги дважды
+- id: x34
+  kind: sensitive
+  reason: billing
+  text: Платеж не прошел
+- id: x35
+  kind: sensitive
+  reason: billing
+  text: Хочу возврат средств
+- id: x36
+  kind: sensitive
+  reason: billing
+  text: верните оплату
+- id: x37
+  kind: sensitive
+  reason: abuse
+  text: I'm going to sue you
+- id: x38
+  kind: sensitive
+  reason: abuse
+  text: I am suing your company
+- id: x39
+  kind: sensitive
+  reason: abuse
+  text: my lawyers will be in touch
+- id: x40
+  kind: sensitive
+  reason: abuse
+  text: you will hear from my solicitor
+- id: x41
+  kind: sensitive
+  reason: abuse
+  text: this is theft, I'm filing a complaint with consumer protection
+- id: x42
+  kind: sensitive
+  reason: abuse
+  text: I'll report this to the FTC
+- id: x43
+  kind: sensitive
+  reason: abuse
+  text: you hacked my account
+- id: x44
+  kind: sensitive
+  reason: abuse
+  text: Подам в суд
+- id: x45
+  kind: sensitive
+  reason: abuse
+  text: Звернуся до поліції
+- id: x46
+  kind: sensitive
+  reason: abuse
+  text: Обратюсь в полицию
+- id: x47
+  kind: sensitive
+  reason: abuse
+  text: Це шахрайство
+- id: x48
+  kind: sensitive
+  reason: abuse
+  text: Вы мошенники
+- id: x49
+  kind: sensitive
+  reason: abuse
+  text: Я подаю в суд на вас
+- id: x50
+  kind: sensitive
+  reason: human_requested
+  text: can I talk to an agent
+- id: x51
+  kind: sensitive
+  reason: human_requested
+  text: I want to talk to a person
+- id: x52
+  kind: sensitive
+  reason: human_requested
+  text: let me speak with support staff
+- id: x53
+  kind: sensitive
+  reason: human_requested
+  text: connect me to a live agent
+- id: x54
+  kind: sensitive
+  reason: human_requested
+  text: is there a human there?
+- id: x55
+  kind: sensitive
+  reason: human_requested
+  text: I need a real human
+- id: x56
+  kind: sensitive
+  reason: human_requested
+  text: з'єднайте з людиною
+- id: x57
+  kind: sensitive
+  reason: human_requested
+  text: хочу поговорити з оператором
+- id: x58
+  kind: sensitive
+  reason: human_requested
+  text: дайте оператора
+- id: x59
+  kind: sensitive
+  reason: human_requested
+  text: соедините с оператором
+- id: x60
+  kind: sensitive
+  reason: human_requested
+  text: хочу поговорить с человеком
+- id: x61
+  kind: sensitive
+  reason: human_requested
+  text: позовіть менеджера
+- id: x62
+  kind: sensitive
+  reason: human_requested
+  text: позовите менеджера
+- id: x63
+  kind: ordinary
+  text: How do I use the file manager to upload my world?
+- id: x64
+  kind: ordinary
+  text: how do I make myself operator on my minecraft server
+- id: x65
+  kind: ordinary
+  text: how to op a player
+- id: x66
+  kind: ordinary
+  text: add a player to operators list
+- id: x67
+  kind: ordinary
+  text: How do I set up the economy plugin so players can pay each other?
+- id: x68
+  kind: ordinary
+  text: my server's payment plugin config doesn't load
+- id: x69
+  kind: ordinary
+  text: how to charge a fee in my server shop plugin
+- id: x70
+  kind: ordinary
+  text: server console says 'court' plugin missing
+- id: x71
+  kind: ordinary
+  text: Can I give a sub-user manager permissions?
+- id: x72
+  kind: ordinary
+  text: How do I install the Citizens human NPC plugin?
+- id: x73
+  kind: ordinary
+  text: I am under a DDoS threat right now, how do I enable protection?
+- id: x74
+  kind: ordinary
+  text: players keep reporting scam links in chat, how to install a chat filter mod
+- id: x75
+  kind: ordinary
+  text: the world seed is 1234567890123456789
+- id: x76
+  kind: ordinary
+  text: how do I change the game version, my plan is paid
+- id: x77
+  kind: ordinary
+  text: 'where can I see my server ip: 51.68.12.4:25565'
+- id: x78
+  kind: ordinary
+  text: change the RCON password to a new one
+- id: x79
+  kind: ordinary
+  text: The password - how do I reset the SFTP password?
+- id: x80
+  kind: ordinary
+  text: Як змінити версію гри?
+- id: x81
+  kind: ordinary
+  text: Как перезапустить сервер?
+- id: x82
+  kind: ordinary
+  text: Как открыть порт?
+- id: x83
+  kind: ordinary
+  text: how to upload files
+- id: x84
+  kind: ordinary
+  text: install a mod
+- id: x85
+  kind: ordinary
+  text: Hi! I've been running my survival world with a few friends for about two months and everything was great, but since yesterday evening it just refuses to come back online after I added a modpack

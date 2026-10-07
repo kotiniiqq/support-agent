@@ -17,11 +17,14 @@ from pathlib import Path
 
 import yaml
 
+from . import tracing
 from .agent import Agent
 from .models import ANSWER, SENSITIVE, Customer, Ticket
+from .pregate import check
 from .retrieval import Retriever, make_retriever
 
 CASES = Path(__file__).resolve().parent / "eval_cases" / "tickets.yaml"
+ADVERSARIAL = Path(__file__).resolve().parent / "eval_cases" / "adversarial.yaml"
 SWEEP = [0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.40]
 
 
@@ -85,15 +88,41 @@ def sweep(retriever: Retriever, cases: list[dict], thresholds=SWEEP) -> list[dic
     return out
 
 
+def evaluate_adversarial(cases: list[dict] | None = None) -> dict:
+    """Pre-gate only: does every sensitive phrasing reach a person, and does no ordinary
+    question get blocked? No retrieval involved, so the numbers do not depend on KB coverage."""
+    cases = cases or load_cases(ADVERSARIAL)
+    sensitive = [c for c in cases if c["kind"] == "sensitive"]
+    ordinary = [c for c in cases if c["kind"] == "ordinary"]
+    missed, wrong_reason, blocked = [], [], []
+    for c in sensitive:
+        gate = check(_ticket(c))
+        if gate is None:
+            missed.append(c["id"])
+        elif gate.reason != c["reason"]:
+            wrong_reason.append(f"{c['id']} ({gate.reason}, expected {c['reason']})")
+    for c in ordinary:
+        if (gate := check(_ticket(c))) is not None:
+            blocked.append(f"{c['id']} ({gate.reason})")
+    return {
+        "sensitive": len(sensitive), "ordinary": len(ordinary),
+        "reach_a_person": _ratio(len(sensitive) - len(missed), len(sensitive)),
+        "exact_reason": _ratio(len(sensitive) - len(missed) - len(wrong_reason), len(sensitive)),
+        "false_blocks": len(blocked),
+        "missed": missed, "wrong_reason": wrong_reason, "blocked": blocked,
+    }
+
+
 def run(retrievers: list[str] | None = None, cases: list[dict] | None = None) -> dict:
     cases = cases or load_cases()
     results = []
-    for name in retrievers or ["bm25", "qdrant"]:
-        retriever = make_retriever(name)
-        result = evaluate(retriever, cases)
-        result["sweep"] = sweep(retriever, cases)
-        results.append(result)
-    return {"cases": len(cases), "results": results}
+    with tracing.suspended():
+        for name in retrievers or ["bm25", "qdrant"]:
+            retriever = make_retriever(name)
+            result = evaluate(retriever, cases)
+            result["sweep"] = sweep(retriever, cases)
+            results.append(result)
+    return {"cases": len(cases), "results": results, "adversarial": evaluate_adversarial()}
 
 
 def write_results(report: dict, out_dir: Path | None = None) -> Path:
@@ -111,6 +140,19 @@ def write_results(report: dict, out_dir: Path | None = None) -> Path:
         lines.append(f"| {r['retriever']} | {r['threshold']} | {r['routing_accuracy']} | {r['sensitive_recall']} "
                      f"| {r['coverage']} | {r['automated']} | {r['answer_accuracy']} | {r['wrong_answers']} | {r['false_handoffs']} "
                      f"| {r['hit_at_1']} | {r['hit_at_3']} |")
+    adv = report.get("adversarial")
+    if adv:
+        lines += ["", "## Adversarial set (pre-gate only)", "",
+                  f"{adv['sensitive']} sensitive and {adv['ordinary']} ordinary phrasings written by an independent "
+                  "reviewer to break the rules. The rules were fixed against it, so it is a regression set now, "
+                  "not a held-out one.", "",
+                  "| sensitive reaching a person | with the exact reason | ordinary questions blocked |",
+                  "|---|---|---|",
+                  f"| {adv['reach_a_person']} | {adv['exact_reason']} | {adv['false_blocks']} |"]
+        if adv["missed"] or adv["blocked"] or adv["wrong_reason"]:
+            lines += ["", "Missed: " + (", ".join(adv["missed"]) or "none") + ". Blocked: "
+                      + (", ".join(adv["blocked"]) or "none") + ". Wrong reason: "
+                      + (", ".join(adv["wrong_reason"]) or "none") + "."]
     for r in report["results"]:
         lines += ["", f"## Threshold sweep: {r['retriever']}", "",
                   "| threshold | coverage | automated | answer accuracy | wrong answers | false handoffs | routing accuracy |",

@@ -100,3 +100,51 @@ def test_every_decision_is_traced_and_redacted(retriever, traces):
     assert s["tickets"] == 2 and s["answered"] == 1 and s["coverage"] == 0.5
     assert s["handoff_reasons"] == {"personal_data": 1}
     assert "4111" not in (traces / next(iter(p.name for p in traces.glob("*.jsonl")))).read_text()
+
+
+@pytest.mark.parametrize("text", [
+    "Restart it from the panel. [restart-server] See [docs](http://x).",   # markdown link is not a citation
+    "Restart it from the panel. [restart-server#1]",                       # chunk citation
+    "Restart it from the panel. [Restart-Server]",                         # case
+])
+def test_reasonable_citation_formats_are_accepted(retriever, text):
+    d = Agent(retriever, llm=fake_llm(text)).handle(ticket("How do I restart my server?"))
+    assert d.route == "answer" and d.sources == ["restart-server"]
+
+
+@pytest.mark.parametrize("text, reason", [
+    ("**ESCALATE**", "llm_escalated"),
+    ("Sorry, ESCALATE", "llm_escalated"),
+    ("[restart-server]", "ungrounded"),                                   # only a citation
+])
+def test_escalate_anywhere_and_citation_only_replies(retriever, text, reason):
+    assert Agent(retriever, llm=fake_llm(text)).handle(ticket("How do I restart my server?")).reason == reason
+
+
+def test_personal_data_never_reaches_the_model(retriever):
+    seen = {}
+
+    def spy(messages, model=None):
+        seen["prompt"] = messages[1]["content"]
+        return LLMResult("Check the SFTP details in the panel. [sftp-access]", "fake", 1, 1, 0.0, 1)
+    # no detector fires on this one, so it reaches the model: make sure what does reach it is clean
+    Agent(retriever, llm=spy).handle(ticket("FileZilla sftp connection refused, what is wrong"))
+    assert "CUSTOMER:" in seen["prompt"]
+    d = Agent(retriever, llm=spy).handle(ticket("FileZilla refused, password hunter22, +380671234567"))
+    assert d.reason == "personal_data"  # stopped by the pre-gate before any model call
+
+
+@pytest.mark.parametrize("bad", [None, 123, ["x"]])
+def test_handle_never_raises_on_odd_input(retriever, bad):
+    d = Agent(retriever).handle(Ticket(id="x", text=bad))
+    assert d.route in ("answer", "handoff") and d.summary is not None or d.route == "answer"
+
+
+def test_handle_survives_a_missing_customer(retriever):
+    assert Agent(retriever).handle(Ticket(id="x", text="How do I restart my server?", customer=None)).route == "answer"
+
+
+def test_chatty_ticket_still_finds_its_question(retriever):
+    text = ("Hi team, hope you're all doing great today. I have been a loyal customer for years "
+            "and love the service. How do I restart my server?")
+    assert Agent(retriever).handle(ticket(text)).sources == ["restart-server"]

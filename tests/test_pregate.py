@@ -75,3 +75,35 @@ def test_personal_data_wins_over_billing():
 ])
 def test_ordinary_questions_pass(text):
     assert gate(text) is None
+
+
+@pytest.mark.parametrize("text, reason", [
+    ("Your DDoS protection failed again, I am suing you", "abuse"),
+    ("my lawyers will contact you", "abuse"),
+    ("you hacked my server and deleted my world backup", "abuse"),
+    ("Звернуся до поліції", "abuse"),
+    ("I paid for the upgrade to more RAM but my plan still shows the old RAM", "billing"),
+    ("I was billed twice this month", "billing"),
+    ("Мені двічі списали кошти", "billing"),
+    ("Платеж не прошел", "billing"),
+    ("you lost my backup, let me talk to a person", "human_requested"),
+    ("restart my server now, I want to speak to an agent", "human_requested"),
+    ("соедините с оператором", "human_requested"),
+    ("позовіть менеджера", "human_requested"),
+])
+def test_inflections_and_paraphrases_reach_a_person(text, reason):
+    assert gate(text).reason == reason
+
+
+@pytest.mark.parametrize("text", [
+    "How do I use the file manager to upload my world?",
+    "how do I make myself operator on my minecraft server",
+    "Can I give a sub-user manager permissions?",
+    "I am under a DDoS threat right now, how do I enable protection?",
+    "my sftp password is not working",
+    "change the RCON password to a new one",
+    "the world seed is 1234567890123456789",
+    "Чекаю на відповідь щодо модів",           # "чекаю" = "I am waiting", not "чек" (receipt)
+])
+def test_how_to_questions_with_trigger_words_are_not_blocked(text):
+    assert gate(text) is None

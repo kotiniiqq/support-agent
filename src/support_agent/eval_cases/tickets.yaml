@@ -29,6 +29,12 @@
 - {id: a23, route: answer, article: upload-world, text: "want to move my map from another host"}
 - {id: a24, route: answer, article: restart-server, text: "Як перезапустити сервер?"}
 
+# ---------- long, chatty tickets: the real question is buried in pleasantries ----------
+- {id: l01, route: answer, article: restart-server, text: "Hi team, hope you're all doing great today. I have been a loyal customer for years and love the service. How do I restart my server?"}
+- {id: l02, route: answer, article: server-wont-start, text: "Hi! I've been running my survival world with a few friends for about two months and everything was great, but since yesterday evening it just refuses to come back online after I added a modpack"}
+- {id: l03, route: answer, article: backups, text: "Good morning. Yesterday one of my friends was messing around and somehow the whole world got wiped. We had built a city over many weeks. Is there any way to roll it back to how it was?"}
+- {id: l04, route: answer, article: sftp-access, text: "Hello, I am trying to upload some config files with FileZilla like I always did on my old host, but here it keeps saying the connection was refused. What am I doing wrong?"}
+
 # ---------- sensitive: must always go to a person ----------
 - {id: s01, route: handoff, reason: billing, text: "I want a refund for this month, the server was down for days"}
 - {id: s02, route: handoff, reason: billing, text: "Why was I charged twice in September?"}

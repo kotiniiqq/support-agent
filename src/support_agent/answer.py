@@ -11,7 +11,10 @@ from .llm import LLMResult
 from .models import Hit, Ticket
 from .redact import redact
 
-CITATION = re.compile(r"\[([a-z0-9-]+)\]")
+# [article-id] or [article-id#2], any case; not markdown link text like [docs](http://...)
+CITATION = re.compile(r"\[([A-Za-z0-9-]+)(?:#\d+)?\](?!\()")
+ESCALATE = re.compile(r"\bESCALATE\b", re.I)
+MIN_ANSWER_CHARS = 20  # a reply that is only a citation is not an answer
 
 SYSTEM_PROMPT = """You are a support agent for a game-server hosting company.
 Answer the customer using ONLY the passages below. Keep it short and practical: one sentence, then numbered steps.
@@ -36,12 +39,14 @@ def with_llm(ticket: Ticket, hits: list[Hit], llm: Callable[..., LLMResult]) -> 
                 {"role": "user", "content": f"PASSAGES:\n{passages}\n\nCUSTOMER:\n{redact(ticket.text)}"}]
     result = llm(messages)
     text = result.text.strip()
-    if text.upper().startswith("ESCALATE"):
+    if ESCALATE.search(text):
         raise Escalate("llm_escalated", "the model could not answer from the passages")
-    cited = list(dict.fromkeys(CITATION.findall(text)))
+    cited = list(dict.fromkeys(c.lower() for c in CITATION.findall(text)))
     allowed = {h.article_id for h in hits}
     if not cited:
         raise Escalate("ungrounded", "the answer cites no source")
     if unknown := [c for c in cited if c not in allowed]:
         raise Escalate("ungrounded", f"the answer cites articles that were not retrieved: {unknown}")
+    if len(CITATION.sub("", text).strip()) < MIN_ANSWER_CHARS:
+        raise Escalate("ungrounded", "the answer is only a citation")
     return text, cited, result

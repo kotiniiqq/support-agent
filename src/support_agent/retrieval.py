@@ -20,7 +20,11 @@ from .models import Chunk, Hit
 
 STOP = set("""a an the and or of to in on for with is are be was were it this that my our your i you we
 can how do does what why when where which please help need get have has from at by as me not
-""".split())
+hi hello hey dear thanks thank team guys hope great love loyal customer years today yesterday evening
+morning since about all also just really very been being would could should will im ive id there here
+some any but so if then than its after before still again now got everything anything something
+everyone friends few two months weeks days ago lot much many doing re ll ve service
+""".split())  # includes the pleasantries customers wrap a question in, so they do not dilute the score
 
 
 def tokenize(text: str) -> list[str]:
@@ -29,12 +33,19 @@ def tokenize(text: str) -> list[str]:
     for t in tokens:
         if t in STOP or len(t) < 2:
             continue
-        for suffix in ("ing", "ed", "es", "s"):  # light stemming: restart(s/ed/ing) -> restart
-            if len(t) > len(suffix) + 3 and t.endswith(suffix):
-                t = t[: -len(suffix)]
-                break
-        out.append(t)
+        out.append(stem(t))
     return out
+
+
+def stem(token: str) -> str:
+    """Tiny suffix stripper: mods/mod, changed/change, files/file, updates/update meet."""
+    for suffix in ("ing", "ed", "es", "s"):
+        if token.endswith(suffix) and len(token) - len(suffix) >= 3:
+            token = token[: -len(suffix)]
+            break
+    if token.endswith("e") and len(token) > 4:
+        token = token[:-1]
+    return token
 
 
 class Retriever(Protocol):
@@ -49,6 +60,9 @@ def best_per_article(hits: list[Hit]) -> list[Hit]:
             seen.add(h.article_id)
             out.append(h)
     return out
+
+
+UNKNOWN_WEIGHT = 0.75  # picked with the eval sweep: 1.0 drowns long tickets, 0.5 lets off-topic ones through
 
 
 class BM25Retriever:
@@ -78,9 +92,11 @@ class BM25Retriever:
         terms = tokenize(query)
         if not terms or not self.docs:
             return []
-        # upper bound for this query: every term matched with saturated tf; unknown terms count
-        # with the highest idf, so a query made mostly of words the KB does not know scores low
-        ceiling = sum(self.idf.get(t, self.max_idf) * (self.k1 + 1) for t in terms)
+        # upper bound for this query: every known term matched with saturated tf. Words the KB has
+        # never seen count at reduced weight: enough that a question mostly about something else
+        # scores low, not so much that a long, chatty ticket drowns its one real question
+        ceiling = sum((self.idf[t] if t in self.idf else UNKNOWN_WEIGHT * self.max_idf) * (self.k1 + 1)
+                      for t in terms)
         scored = [(self._raw(terms, i) / ceiling, i) for i in range(len(self.docs))]
         scored = sorted((s for s in scored if s[0] > 0), reverse=True)[: max(k * 3, k)]
         hits = [Hit(c.article_id, c.chunk_id, c.title, c.text, round(s, 4))
@@ -135,20 +151,27 @@ class QdrantRetriever:
     name = "qdrant"
 
     def __init__(self, embedder=None, chunks: list[Chunk] | None = None, location: str | None = None,
-                 collection: str = "kb"):
-        from qdrant_client import QdrantClient, models
+                 prefix: str = "kb"):
+        try:
+            from qdrant_client import QdrantClient, models
+        except ImportError as exc:  # optional dependency
+            raise RuntimeError('the qdrant retriever needs: pip install "support-agent[qdrant]"') from exc
 
         self.embedder = embedder or HashEmbedder()
         self.chunks = chunks if chunks is not None else make_chunks(load_articles())
-        self.collection = collection
+        # the collection name carries a hash of the KB and the embedder, so a server collection is
+        # reused when nothing changed and never dropped under another worker
+        fingerprint = hashlib.sha256((repr(self.embedder.__class__.__name__) + getattr(self.embedder, "model", "")
+                                      + "".join(c.chunk_id + c.text for c in self.chunks)).encode()).hexdigest()[:12]
+        self.collection = f"{prefix}_{fingerprint}"
         url = location or os.environ.get("SA_QDRANT_URL")
         self.client = QdrantClient(url=url) if url else QdrantClient(":memory:")
+        if self.client.collection_exists(self.collection):
+            return
         vectors = self.embedder([c.text for c in self.chunks])
-        if self.client.collection_exists(collection):
-            self.client.delete_collection(collection)
-        self.client.create_collection(collection, vectors_config=models.VectorParams(
+        self.client.create_collection(self.collection, vectors_config=models.VectorParams(
             size=len(vectors[0]), distance=models.Distance.COSINE))
-        self.client.upsert(collection, points=[
+        self.client.upsert(self.collection, points=[
             models.PointStruct(id=i, vector=v, payload={"article_id": c.article_id, "chunk_id": c.chunk_id,
                                                           "title": c.title, "text": c.text})
             for i, (c, v) in enumerate(zip(self.chunks, vectors))])

@@ -69,3 +69,15 @@ def test_cli_stats_reads_traces(capsys):
     main(["stats"])
     s = json.loads(capsys.readouterr().out)
     assert s["tickets"] == 2 and s["handoff_reasons"] == {"billing": 1}
+
+
+def test_evals_do_not_write_traces(tmp_path):
+    from support_agent.evals import run
+    run(["bm25"])
+    assert not list((tmp_path / "traces").glob("*.jsonl"))
+
+
+def test_adversarial_regression_set():
+    from support_agent.evals import evaluate_adversarial
+    r = evaluate_adversarial()
+    assert r["reach_a_person"] == 1.0 and r["false_blocks"] <= 1

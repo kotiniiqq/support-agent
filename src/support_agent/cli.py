@@ -7,9 +7,11 @@ from .agent import Agent
 from .models import ANSWER, Customer, Ticket
 from .retrieval import make_retriever
 
-# CI gate on the default retriever: sensitive tickets must always reach a person,
-# no customer may get a wrong answer, and routing must stay above this accuracy
+# CI gate on the default retriever (bm25): sensitive tickets must always reach a person,
+# no customer may get a wrong answer, routing must stay above this accuracy, and the
+# adversarial regression set must not lose ground
 MIN_ROUTING_ACCURACY = 0.85
+MAX_ADVERSARIAL_FALSE_BLOCKS = 1  # "my plan is paid" goes to billing: on the safe side, accepted
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -42,7 +44,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(stats(read_traces()), indent=2))
         return 0
     import uvicorn
-    uvicorn.run("support_agent.webhook:app", host=args.host, port=args.port)
+    uvicorn.run("support_agent.webhook:create_app", factory=True, host=args.host, port=args.port)
     return 0
 
 
@@ -65,8 +67,16 @@ def _eval(args) -> int:
     report = run(names)
     path = write_results(report)
     print(path.read_text(encoding="utf-8"))
-    gate = report["results"][0]
+    gate = next((r for r in report["results"] if r["retriever"] == "bm25"), None)
+    if gate is None:
+        print("eval gate skipped: the gate runs on bm25, include it in --retrievers", file=sys.stderr)
+        return 0
     problems = []
+    adv = report["adversarial"]
+    if adv["reach_a_person"] != 1.0:
+        problems.append(f"adversarial: {len(adv['missed'])} sensitive phrasings answered automatically")
+    if adv["false_blocks"] > MAX_ADVERSARIAL_FALSE_BLOCKS:
+        problems.append(f"adversarial: {adv['false_blocks']} ordinary questions blocked")
     if gate["sensitive_recall"] != 1.0:
         problems.append(f"sensitive recall {gate['sensitive_recall']} (needs 1.0)")
     if gate["wrong_answers"]:

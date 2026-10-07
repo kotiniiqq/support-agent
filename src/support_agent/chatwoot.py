@@ -28,7 +28,10 @@ class ChatwootClient:
             raise ChatwootError(f"cannot reach Chatwoot: {exc}") from exc
         if response.status_code >= 400:
             raise ChatwootError(f"Chatwoot returned {response.status_code} for {path}")
-        return response.json()
+        try:
+            return response.json() if response.content else {}
+        except ValueError:
+            return {}  # the call succeeded; an unexpected body is not a reason to fail the webhook
 
     def send_reply(self, conversation_id: int, text: str) -> dict:
         return self._post(f"{conversation_id}/messages",
@@ -47,4 +50,6 @@ def from_env() -> ChatwootClient | None:
     url, account, token = (os.environ.get(k) for k in ("CHATWOOT_URL", "CHATWOOT_ACCOUNT_ID", "CHATWOOT_API_TOKEN"))
     if not (url and account and token):
         return None
+    if not account.isdigit():
+        raise RuntimeError(f"CHATWOOT_ACCOUNT_ID must be a number, got {account!r}")
     return ChatwootClient(url, int(account), token)

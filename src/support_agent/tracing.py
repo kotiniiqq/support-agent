@@ -7,6 +7,7 @@ import json
 import os
 import sys
 import uuid
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -17,9 +18,25 @@ def trace_dir() -> Path:
     return Path(os.environ.get("SA_TRACE_DIR", ".traces"))
 
 
+_suspended = False
+
+
+@contextmanager
+def suspended():
+    """Evals replay many tickets; their decisions must not show up as real traffic in `stats`."""
+    global _suspended
+    previous, _suspended = _suspended, True
+    try:
+        yield
+    finally:
+        _suspended = previous
+
+
 def trace(name: str, **fields) -> dict:
     event = {"id": str(uuid.uuid4()), "timestamp": datetime.now(timezone.utc).isoformat(), "name": name,
              **{k: redact(v) if isinstance(v, str) else v for k, v in fields.items()}}
+    if _suspended:
+        return event
     try:
         folder = trace_dir()
         folder.mkdir(parents=True, exist_ok=True)
