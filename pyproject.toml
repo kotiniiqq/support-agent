@@ -24,3 +24,5 @@ packages = ["src/support_agent"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+# third-party: starlette warns about its own httpx-based TestClient
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient` is deprecated"]
