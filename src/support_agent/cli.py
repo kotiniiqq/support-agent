@@ -35,6 +35,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    try:
+        return _run(args)
+    except (RuntimeError, ValueError) as exc:  # configuration problems: say what to do, no traceback
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+
+def _run(args) -> int:
     if args.command == "ask":
         return _ask(args)
     if args.command == "eval":

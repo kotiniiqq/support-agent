@@ -1,6 +1,6 @@
 # Eval results
 
-Last run: 2026-10-07T16-14-31Z. 50 golden tickets. Raw per-ticket data is written to `evals/results/` (not committed).
+Last run: 2026-10-07T16-17-10Z. 50 golden tickets. Raw per-ticket data is written to `evals/results/` (not committed).
 
 | retriever | threshold | routing accuracy | sensitive recall | coverage | automated | answer accuracy | wrong answers | false handoffs | hit@1 | hit@3 |
 |---|---|---|---|---|---|---|---|---|---|---|

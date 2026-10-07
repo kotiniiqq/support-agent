@@ -12,6 +12,7 @@ Metrics per retriever:
 - threshold sweep: coverage and answer accuracy as the no-match threshold moves.
 """
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -118,7 +119,11 @@ def run(retrievers: list[str] | None = None, cases: list[dict] | None = None) ->
     results = []
     with tracing.suspended():
         for name in retrievers or ["bm25", "qdrant"]:
-            retriever = make_retriever(name)
+            try:
+                retriever = make_retriever(name)
+            except RuntimeError as exc:  # e.g. the optional qdrant extra is not installed
+                print(f"skipping {name}: {exc}", file=sys.stderr)
+                continue
             result = evaluate(retriever, cases)
             result["sweep"] = sweep(retriever, cases)
             results.append(result)
