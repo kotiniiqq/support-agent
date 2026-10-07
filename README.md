@@ -152,7 +152,7 @@ src/support_agent/
   evals.py  tracing.py                    measurement
   kb/  eval_cases/                        synthetic articles and golden tickets (ship with the package)
 scripts/write_kb.py                       regenerates the knowledge base
-tests/                                    71 tests, no network
+tests/                                    72 tests, no network
 ```
 
 ## How this was built
