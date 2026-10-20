@@ -209,6 +209,11 @@ That review is the most useful part of the history:
 
 All of these are fixed, and each fix is pinned by a test.
 
+## Contact
+
+Feedback, ideas, job offers or custom projects (n8n, MCP, AI automation): [kotiniiqq@gmail.com](mailto:kotiniiqq@gmail.com).
+Bug reports and feature requests are welcome in [Issues](https://github.com/kotiniiqq/support-agent/issues).
+
 ## License
 
 MIT
