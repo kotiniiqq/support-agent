@@ -5,6 +5,8 @@ to a person before any model sees them, and hands off with a ready-made note whe
 not sure. Every routing decision is measured on a golden set of tickets plus an adversarial
 set, in CI, without any API key.
 
+<img src="https://raw.githubusercontent.com/kotiniiqq/support-agent/main/docs/assets/overview.svg" width="640" alt="support-agent flow">
+
 > Reference implementation of the support agent I hardened for a game-server hosting company:
 > in production it went from handling about 30% of tickets to about 70%. That system ran on
 > n8n, Qdrant and Chatwoot and its code is private; this repo rebuilds the parts that made it
